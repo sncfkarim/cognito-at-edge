@@ -196,6 +196,30 @@ export class Authenticator {
     this._logger.debug({ msg: 'Found idToken in cookie', token });
     return token;
   }
+  
+  /**
+   * Extract value of the authentication token from the request authorization header.
+   * @param  {Array}  authorizationHeaders 'Authorization' request headers.
+   * @return {String} Extracted access token. Throw if not found.
+   */
+  _getIdTokenFromHeader(authorizationHeaders: Array<{ key?: string | undefined, value: string }> | undefined) {
+    if (!authorizationHeaders) {
+      this._logger.debug("Cookies weren't present in the request");
+      throw new Error("Cookies weren't present in the request");
+    }
+    
+    this._logger.debug({ msg: 'Extracting authentication token from request cookie', cookieHeaders });
+
+    const token = [...authorizationHeaders].shift();
+
+    if (!token) {
+      this._logger.debug("idToken wasn't present in request cookies");
+      throw new Error("idToken isn't present in the request cookies");
+    }
+
+    this._logger.debug({ msg: 'Found idToken in cookie', token });
+    return token;
+  }
 
   /**
    * Handle Lambda@Edge event:
@@ -214,7 +238,7 @@ export class Authenticator {
     const redirectURI = `https://${cfDomain}`;
 
     try {
-      const token = this._getIdTokenFromCookie(request.headers.cookie);
+      const token = this._getIdTokenFromCookie(request.headers.authorization);
       this._logger.debug({ msg: 'Verifying token...', token });
       const user = await this._jwtVerifier.verify(token);
       this._logger.info({ msg: 'Forwarding request', path: request.uri, user });
